@@ -1,1 +1,25 @@
 # myskills
+
+汎用的に使えるスキル・スクリプト・ノウハウをまとめて管理するリポジトリ。
+
+## 構成
+
+- `claude-skills/` : Claude Skills形式(SKILL.md準拠)のスキル集。Claude / Claude Codeにそのまま読み込ませられる
+- `scripts/` : 汎用スクリプト・テンプレート類
+- `docs/` : スキル化しないノウハウ・チェックリスト
+
+## スキル一覧
+
+| スキル名 | 概要 | パス |
+|---|---|---|
+| android-smartphone-dev | スマホのみでAndroidアプリを開発する手法 | `claude-skills/android-smartphone-dev/SKILL.md` |
+
+## 使い方(環境別)
+
+- **claude.aiのプロジェクト**: 該当するSKILL.mdの中身を「プロジェクトの知識」に貼り付ける
+- **Claude Code**: このリポジトリをcloneし、使いたいスキルフォルダを `.claude/skills/` にコピーまたはシンボリックリンク
+- **新しい端末**: `myskills` をcloneするだけで全スキルにアクセス可能
+
+## 更新ルール
+
+新しいスキルを追加したら、上記の表に1行追記すること。
