@@ -12,7 +12,6 @@
 
 | スキル名 | 概要 | パス |
 |---|---|---|
-| android-smartphone-dev | スマホのみでAndroidアプリを開発する手法 | `claude-skills/android-smartphone-dev/SKILL.md` |
 
 ## 使い方(環境別)
 
