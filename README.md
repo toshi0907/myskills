@@ -16,7 +16,7 @@
 ## 使い方(環境別)
 
 - **claude.aiのプロジェクト**: 該当するSKILL.mdの中身を「プロジェクトの知識」に貼り付ける
-- **Claude Code**: このリポジトリをcloneし、使いたいスキルフォルダを `.claude/skills/` にコピーまたはシンボリックリンク
+- **他リポジトリのClaude Code(ローカル/web共通)**: myskillsをsubmoduleとして取り込み、`.claude/skills` をsymlinkにする。Claude Code on the webなど使い捨て環境ではSessionStart hookで自動更新する。手順は [`docs/skill-integration-submodule.md`](docs/skill-integration-submodule.md) を参照
 - **新しい端末**: `myskills` をcloneするだけで全スキルにアクセス可能
 
 ## 更新ルール
