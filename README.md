@@ -13,6 +13,7 @@
 | スキル名 | 概要 | パス |
 |---|---|---|
 | github-dev-flow | GitHubリポジトリでの実装依頼を進める際、着手前に自動化の範囲(調査のみ〜マージまで5段階)を確定させ、依頼→作業→PR作成→CI対応→セルフレビュー→マージのフローを一貫して実行する | `claude-skills/github-dev-flow/` |
+| task-completion-check | タスクを依頼された際に使う共通Skill。タスク完了(GitHub作業ならPRマージ+マージ先CI完了)を判定し、完了時にセッションをアーカイブするかユーザーに確認する | `claude-skills/task-completion-check/` |
 
 ## 使い方(環境別)
 
