@@ -16,6 +16,7 @@
 | task-completion-check | タスクを依頼された際に使う共通Skill。タスク完了(GitHub作業ならPRマージ+マージ先CI完了)を判定し、完了時にセッションをアーカイブするかユーザーに確認する | `claude-skills/task-completion-check/` |
 | android-mobile-only-dev | Android Studio/PCを使わず、スマホ+Claude CodeだけでAndroidアプリを開発する際の開発フロー・体制に関するSkill。ローカルでビルドが完結しない前提、CIへのビルド委譲、デバッグ署名鍵の固定、ビルド番号を使ったアプリ内アップデート配布、実機確認までの開発ループを扱う | `claude-skills/android-mobile-only-dev/` |
 | android-app-dev-foundations | Kotlin + Jetpack Compose + GradleでAndroidアプリを開発する際の汎用的な技術知見。Compose Compilerプラグイン要件、RoomのMigration運用、WorkManagerの短間隔実行パターン、並行処理の直列化・キャンセル安全性、位置情報(Geofencing/継続的追跡)利用時の注意点を扱う | `claude-skills/android-app-dev-foundations/` |
+| claude-md-maintenance | リポジトリのCLAUDE.mdを新規作成・追記修正する際に使うSkill。CLAUDE.mdは毎回コンテキストに読み込まれトークンを消費し続けるため、サイズ最小化(目安50〜100行、他ドキュメントへのリンク活用、冗長な説明を避ける等)を軸に新規作成・追記修正の手順を定める | `claude-skills/claude-md-maintenance/` |
 
 ## 使い方(環境別)
 
