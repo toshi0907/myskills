@@ -26,7 +26,14 @@
 #      scripts/session-start-hook/settings.snippet.json)
 set -euo pipefail
 
-cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
+# CLAUDE_PROJECT_DIR 未設定(ローカルでの手動実行)時は、対象リポジトリのルートで動作する
+# (.myskills 内から実行された場合も親リポジトリを使う)。
+root="${CLAUDE_PROJECT_DIR:-}"
+if [ -z "$root" ]; then
+  root="$(git rev-parse --show-superproject-working-tree)"
+  [ -n "$root" ] || root="$(git rev-parse --show-toplevel)"
+fi
+cd "$root"
 
 log() {
   echo "myskills-skills-sync: $*" >&2
@@ -43,7 +50,7 @@ fi
 if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
   # --remote: myskills側の最新コミットを取得する
   # --init:   初回clone直後でsubmoduleが未初期化でも動くようにする
-  if git submodule update --init --remote -- .myskills; then
+  if git submodule update --init --remote -- .myskills >&2; then
     log "submodule synced to $(git -C .myskills rev-parse --short HEAD)"
   else
     log "警告: submodule の更新に失敗しました。既存の内容のまま続行します。"
@@ -52,6 +59,15 @@ fi
 
 skills_src=".myskills/claude-skills"
 link_prefix="../../.myskills/claude-skills/"
+
+# myskills由来のsymlink(リンク先が link_prefix で始まる)かどうか
+is_myskills_link() {
+  [ -L "$1" ] || return 1
+  case "$(readlink "$1")" in
+    "$link_prefix"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 # submoduleが未初期化(更新失敗など)の場合、全symlinkがリンク切れに見えて
 # 誤って削除してしまうため、同期自体を行わない。
@@ -68,11 +84,7 @@ removed=()
 # myskills側で名前変更・削除されたスキルのリンク切れsymlinkを削除する。
 # myskills由来(リンク先が link_prefix で始まる)と判別できるものに限る。
 for link in .claude/skills/*; do
-  [ -L "$link" ] || continue
-  case "$(readlink "$link")" in
-    "$link_prefix"*) ;;
-    *) continue ;;
-  esac
+  is_myskills_link "$link" || continue
   [ -e "$link" ] && continue
   rm -- "$link"
   removed+=("$link")
@@ -96,29 +108,31 @@ done
 [ "${#added[@]}" -gt 0 ] && log "${#added[@]}件のスキルsymlinkを追加しました: ${added[*]}"
 [ "${#removed[@]}" -gt 0 ] && log "${#removed[@]}件のリンク切れsymlinkを削除しました: ${removed[*]}"
 
-# myskills同期による未コミットの差分を一覧表示する(以前のセッションで
-# 生じたままコミットされていないものも含む)。自動コミットはしない。
+# myskills同期による未コミットの差分(ステージ済みも含む。以前のセッションで
+# 生じたままのものも対象)を一覧表示する。自動コミットはしない。
+# SessionStart hook の stdout はClaudeのコンテキストに渡るため、stdoutに出力する。
 pending=()
-if ! git diff --quiet -- .myskills; then
-  pending+=(".myskills")
-fi
-for link in .claude/skills/*; do
-  [ -L "$link" ] || continue
-  case "$(readlink "$link")" in
-    "$link_prefix"*) ;;
-    *) continue ;;
+while IFS= read -r -d '' entry; do
+  path="${entry:3}"
+  case "$path" in
+    .myskills) pending+=("$path") ;;
+    .claude/skills/*)
+      if is_myskills_link "$path"; then
+        pending+=("$path")
+      elif [ ! -e "$path" ] && [ ! -L "$path" ]; then
+        # 削除済み: コミット済みの内容(symlinkのリンク先)で判定する
+        case "$(git cat-file -p "HEAD:$path" 2>/dev/null)" in
+          "$link_prefix"*) pending+=("$path") ;;
+        esac
+      fi
+      ;;
   esac
-  git ls-files --error-unmatch -- "$link" >/dev/null 2>&1 || pending+=("$link")
-done
-while IFS= read -r link; do
-  case "$(git cat-file -p ":$link" 2>/dev/null)" in
-    "$link_prefix"*) pending+=("$link") ;;
-  esac
-done < <(git diff --name-only --diff-filter=D -- .claude/skills)
+done < <(git status --porcelain -z --no-renames --ignore-submodules=dirty \
+           -- .myskills .claude/skills)
 
 if [ "${#pending[@]}" -gt 0 ]; then
-  log "myskills同期による未コミットの差分があります: ${pending[*]}"
-  log "作業内容とは混ぜず、専用のコミット(例: chore: sync myskills)としてコミットしてください。"
+  echo "myskills-skills-sync: myskills同期による未コミットの差分があります: ${pending[*]}"
+  echo "作業内容とは混ぜず、上記パスだけを専用のコミット(例: chore: sync myskills)としてコミットしてください。"
 fi
 
 exit 0
