@@ -28,6 +28,21 @@ myskills側でスキルを追加した場合もsymlink越しに素直に反映�
 上書きしない**。対象リポジトリ側で意図的に用意したローカルスキルや、myskills側の
 スキルを個別にカスタマイズしたい場合を優先する。
 
+例外として、myskills側でスキルの名前変更・削除があり、`../../.myskills/claude-skills/`
+を指したままリンク切れになったsymlinkは同期スクリプトが削除する(リンク先がそれ以外の
+symlinkや、実ファイル/ディレクトリには触れない)。submoduleが未初期化で
+`.myskills/claude-skills/` 自体が存在しない場合は、誤削除を避けるため同期全体をスキップする。
+
+### ルール: 同期の差分は作業内容と別のコミットにする
+
+submodule更新(`--remote`)やsymlinkの追加・削除により、対象リポジトリには
+「myskills同期の差分」(`.myskills` のコミット更新、`.claude/skills/` 配下のsymlinkの
+追加・削除)が生じる。これらはコミットして取り込む方針とするが、作業内容と混ぜると
+無関係なPRに紛れ込むため、**専用のコミット(例: `chore: sync myskills`)として分けて
+コミットする**。同期スクリプトは自動コミットはせず、未コミットの同期差分を一覧表示する。
+`git add -A` / `git commit -a` で作業コミットに巻き込まないよう、該当パスを明示して
+ステージすること(Claude向けのルールは後述の CLAUDE.md スニペットに記載)。
+
 ## 設置手順(対象リポジトリ側、初回のみ)
 
 1. myskills を submodule として追加する。
@@ -73,6 +88,10 @@ git submodule update --init --remote -- .myskills
 bash .myskills/scripts/session-start-hook/myskills-skills-sync.sh
 ```
 
+(同期スクリプトは `CLAUDE_PROJECT_DIR` 未設定時はリポジトリのルートで動作し、
+`CLAUDE_CODE_REMOTE=true` でない環境ではsubmodule更新を行わないため、
+更新は1行目のコマンドで行う)
+
 頻繁に更新を取り込みたい場合は、シェルのエイリアスや `direnv` 等で
 リポジトリに入るたびに実行する運用でも十分。
 
@@ -80,7 +99,9 @@ bash .myskills/scripts/session-start-hook/myskills-skills-sync.sh
 
 セッションごとにコンテナがまっさらな状態から始まるため、手動実行に頼れない。
 SessionStart hookで毎回自動的に submodule更新 + スキルsymlink追加を
-実行させることで、都度最新化する。具体的なフックスクリプトと設置手順は
+実行させることで、都度最新化する。フックは `"matcher": "startup"` で登録し、
+`resume`/`clear`/`compact` では発火させない。submodule更新がネットワーク/プロキシ等で
+失敗した場合は警告を出して既存の内容のままsymlink同期を続行する。具体的なフックスクリプトと設置手順は
 [`../scripts/session-start-hook/`](../scripts/session-start-hook/) を参照。
 
 ## 使う際のルール(CLAUDE.md)
@@ -91,7 +112,7 @@ SessionStart hookで毎回自動的に submodule更新 + スキルsymlink追加�
 
 ## 既知の制約・今後の検討事項
 
-- myskills側でスキルの名前を変更・削除した場合、対象リポジトリに残った古いsymlinkは
-  自動では消えない(既存ファイルを上書きしない方針のため、削除は現状手動対応)。
+- myskills側でスキルの名前を変更・削除した場合、リンク切れになった古いsymlinkは
+  同期スクリプトが削除するが、その削除自体は同期の差分としてコミットが必要。
 - claude.ai のプロジェクト(ブラウザ版)は本方式の対象外。SKILL.md本文を
   「プロジェクトの知識」に手動で貼る運用が別途必要。
