@@ -21,7 +21,7 @@
 # 設置方法(対象リポジトリ側):
 #   1. このファイルを .claude/hooks/myskills-skills-sync.sh にコピー
 #   2. chmod +x .claude/hooks/myskills-skills-sync.sh
-#   3. .claude/settings.json の hooks.SessionStart に、matcher "startup" で
+#   3. .claude/settings.json の hooks.SessionStart に、matcher "startup|resume" で
 #      このスクリプトを登録する(記述例: myskills リポジトリの
 #      scripts/session-start-hook/settings.snippet.json)
 set -euo pipefail

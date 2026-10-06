@@ -99,8 +99,9 @@ bash .myskills/scripts/session-start-hook/myskills-skills-sync.sh
 
 セッションごとにコンテナがまっさらな状態から始まるため、手動実行に頼れない。
 SessionStart hookで毎回自動的に submodule更新 + スキルsymlink追加を
-実行させることで、都度最新化する。フックは `"matcher": "startup"` で登録し、
-`resume`/`clear`/`compact` では発火させない。submodule更新がネットワーク/プロキシ等で
+実行させることで、都度最新化する。フックは `"matcher": "startup|resume"` で登録し、
+`clear`/`compact` では発火させない(再開時は新しいコンテナで始まりsubmoduleが
+未初期化の可能性があるため、`resume` も対象に含める)。submodule更新がネットワーク/プロキシ等で
 失敗した場合は警告を出して既存の内容のままsymlink同期を続行する。具体的なフックスクリプトと設置手順は
 [`../scripts/session-start-hook/`](../scripts/session-start-hook/) を参照。
 
