@@ -39,7 +39,8 @@ submodule更新(`--remote`)やsymlinkの追加・削除により、対象リポ�
 「myskills同期の差分」(`.myskills` のコミット更新、`.claude/skills/` 配下のsymlinkの
 追加・削除)が生じる。これらはコミットして取り込む方針とするが、作業内容と混ぜると
 無関係なPRに紛れ込むため、**専用のコミット(例: `chore: sync myskills`)として分けて
-コミットする**。同期スクリプトは自動コミットはせず、未コミットの同期差分を一覧表示する。
+コミットする**。同期スクリプトは自動コミットはせず、未コミットの同期差分の一覧を
+SessionStart hook の `additionalContext` としてClaudeに渡す。
 `git add -A` / `git commit -a` で作業コミットに巻き込まないよう、該当パスを明示して
 ステージすること(Claude向けのルールは後述の CLAUDE.md スニペットに記載)。
 
@@ -69,6 +70,10 @@ submodule更新(`--remote`)やsymlinkの追加・削除により、対象リポ�
 これでどの環境のClaude Codeからも、対象リポジトリをcloneして
 submoduleを初期化すれば myskills のスキルが `.claude/skills/` 配下にスキルごとの
 symlinkとして見える状態になる。
+
+なお、ローカルでcloneした直後は submodule が未初期化のため、
+`git submodule update --init -- .myskills` を一度実行する必要がある
+(`git clone --recurse-submodules` でcloneした場合は不要)。
 
 ## 更新の取り込み方(環境によって異なる)
 
@@ -101,8 +106,24 @@ bash .myskills/scripts/session-start-hook/myskills-skills-sync.sh
 SessionStart hookで毎回自動的に submodule更新 + スキルsymlink追加を
 実行させることで、都度最新化する。フックは `"matcher": "startup|resume"` で登録し、
 `clear`/`compact` では発火させない(再開時は新しいコンテナで始まりsubmoduleが
-未初期化の可能性があるため、`resume` も対象に含める)。submodule更新がネットワーク/プロキシ等で
-失敗した場合は警告を出して既存の内容のままsymlink同期を続行する。具体的なフックスクリプトと設置手順は
+未初期化の可能性があるため、`resume` も対象に含める)。
+
+フックの主な挙動:
+
+- submodule更新は `timeout`(既定60秒、環境変数 `MYSKILLS_SYNC_TIMEOUT` で変更可)で包み、
+  ネットワーク停滞時にセッション開始を長時間ブロックしない。
+- submodule更新がネットワーク/プロキシ/タイムアウト等で失敗した場合は警告を出して
+  既存の内容のままsymlink同期を続行する。その時点で `.myskills/claude-skills` が存在しない
+  (未初期化)場合は、`git submodule update --init -- .myskills`(記録済みコミット)での
+  初期化を試みる。
+- スキル本体を新規取得した場合、またはsymlinkを追加した場合は
+  `{"hookSpecificOutput":{"hookEventName":"SessionStart","reloadSkills":true}}` を出力し、
+  Claude Code にスキルを再読み込みさせる。未コミットの同期差分の案内は同じJSONの
+  `additionalContext` に入れる([Hooks reference](https://code.claude.com/docs/en/hooks))。
+- `settings.json` に登録するコマンドは、パスに空白を含む場合に備えて
+  `"\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/myskills-skills-sync.sh"` のようにクォートする。
+
+具体的なフックスクリプトと設置手順は
 [`../scripts/session-start-hook/`](../scripts/session-start-hook/) を参照。
 
 ## 使う際のルール(CLAUDE.md)
